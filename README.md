@@ -115,25 +115,25 @@ flowchart TD
 ```mermaid
 flowchart TD
   Chat[Daily Chat] --> N1[n8n]
-  N1 --> L[Lang detect/Translate]
-  L --> I1[I (Retry/Rate)]
-  I1 --> S1[Symanto Big5/CS/PT]
-  S1 --> A[A 正規化]
-  A --> C[C σx² & flags]
-  C --> B[B ベイズ]
+  N1 --> L["Lang detect/Translate"]
+  L --> I1["I (Retry/Rate)"]
+  I1 --> S1["Symanto Big5/CS/PT"]
+  S1 --> A["A 正規化"]
+  A --> C["C σx² & flags"]
+  C --> B["B ベイズ"]
   B --> T2[(ocean_timeseries)]
-  B --> D[D EWMA/傾き/分散<br/>(任意: 変化点)]
+  B --> D["D EWMA/傾き/分散<br/>(任意: 変化点)"]
 ```
 
 ### 03. 介入とエンゲージメント（サムネ）
 ```mermaid
 flowchart TD
-  Inputs[Posterior/分散/確信度/特徴] --> E[E プラン]
-  E --> I2[I (Retry/Rate)]
+  Inputs["Posterior/分散/確信度/特徴"] --> E["E プラン"]
+  E --> I2["I (Retry/Rate)"]
   I2 --> OAI[OpenAI]
-  OAI --> F[F 後処理]
-  F --> Card[配信用カード]
-  Card --> Act[ユーザー行動]
+  OAI --> F["F 後処理"]
+  F --> Card["配信用カード"]
+  Card --> Act["ユーザー行動"]
 ```
 
 ### 04. 1日のシーケンス（サムネ）
