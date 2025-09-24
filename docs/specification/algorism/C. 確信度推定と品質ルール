@@ -30,9 +30,9 @@ C. 確信度推定と品質ルールって何をする？
     * 将来的にコンフォーマル予測を使うと、分布仮定に依らない誤差率保証付きの予測区間を載せられます（回帰・NLPでのサーベイ多数）。MIT Press Direct
 2) シグナル → 観測分散（σx²）への写像
 直感はシンプルです：悪条件ほど分散を大きく、良条件ほど小さく。 例（Tスコア系で扱う想定）：
-
-￼
-
+$$
+\sigma_x^2 = \max(\sigma_{\min}^2, \beta_0 + \frac{\beta_1}{\sqrt{\text{tokens}}} + \beta_2 \cdot (1 - \text{MTQE}) + \beta_3 \cdot 1[\text{lang\_mismatch}] + \beta_4 \cdot \text{OOD})
+$$
 * tokens: トークン数（多いほど分散↓）。Spearman–Brownの考え方を単調減少の形で取り入れた近似。ウィキペディア
 * MTQE: 翻訳品質（高いほど分散↓）。参照不要のQE（COMET-QE等）に基づく。Machine Translate+1
 * lang_mismatch / OOD: 言語や分布外のフラグで分散↑。
