@@ -37,6 +37,7 @@ n8n（オーケストレーション）→  H: 書込は専用ロールのみ/�
 
 2) 制約・権限・トリガ（サンプルDDL）
 
+```sql
 -- 役割と権限
 CREATE ROLE pipeline_writer, analyst_reader;                               -- 役割
 GRANT SELECT, INSERT ON db.* TO pipeline_writer;
@@ -46,6 +47,7 @@ GRANT pipeline_writer TO 'n8n_pipeline'@'%';
 GRANT analyst_reader  TO 'bi_analyst'@'%';                                  -- 参考: 役割の設計 :contentReference[oaicite:9]{index=9}
 
 -- スキーマ例（抜粋）
+```sql
 CREATE TABLE baseline_profiles (
   user_id BIGINT NOT NULL,
   administered_at DATETIME NOT NULL,
@@ -58,7 +60,9 @@ CREATE TABLE baseline_profiles (
   CONSTRAINT ck_t_range CHECK (O_T BETWEEN 0 AND 100 AND C_T BETWEEN 0 AND 100
     AND E_T BETWEEN 0 AND 100 AND A_T BETWEEN 0 AND 100 AND N_T BETWEEN 0 AND 100)
 ); -- MySQL 8.0.16+のCHECKは実際に強制されます :contentReference[oaicite:10]{index=10}
+```
 
+```sql
 CREATE TABLE ocean_timeseries (
   user_id BIGINT NOT NULL,
   date DATE NOT NULL,
@@ -67,8 +71,10 @@ CREATE TABLE ocean_timeseries (
   PRIMARY KEY (user_id, date),
   FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
+```
 
 -- 追記専用: UPDATE/DELETEをトリガで禁止（権限で禁止＋二重防御）
+```sql
 DELIMITER //
 CREATE TRIGGER ocean_timeseries_no_update BEFORE UPDATE ON ocean_timeseries
 FOR EACH ROW BEGIN
@@ -78,8 +84,10 @@ CREATE TRIGGER ocean_timeseries_no_delete BEFORE DELETE ON ocean_timeseries
 FOR EACH ROW BEGIN
   SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='ocean_timeseries is append-only';
 END//
+```
 
 -- 任意：時系列特徴テーブル（Dモジュール）
+```sql
 CREATE TABLE ocean_features (
   user_id BIGINT NOT NULL,
   date DATE NOT NULL,
@@ -91,9 +99,11 @@ CREATE TABLE ocean_features (
   PRIMARY KEY (user_id, date, trait),
   FOREIGN KEY (user_id, date) REFERENCES ocean_timeseries(user_id, date)
 );
+```
 DELIMITER ;  -- SIGNALは手続きからエラーを返す仕組みです :contentReference[oaicite:11]{index=11}
 
 -- Idempotency: 重複リクエスト防止
+```sql
 CREATE TABLE behavior_events (
   event_id BIGINT PRIMARY KEY AUTO_INCREMENT,
   user_id BIGINT NOT NULL,
@@ -102,15 +112,18 @@ CREATE TABLE behavior_events (
   idempotency_key CHAR(36) NOT NULL,
   UNIQUE (idempotency_key)  -- 同じ処理を二重に実行しない :contentReference[oaicite:12]{index=12}
 );
+```
 注意：n8nのMySQLノードはDECIMALを文字列で返すため、後段のJSでNumber()変換や丸め戦略を統一しておきます（意図的仕様） n8n Docs。
 
 3) ビューと読み取り専用アクセス
 分析者にはベース表への権限を与えず、SQL SECURITY DEFINERのビュー経由で提供します（行/列の最小権限）。権限はロール単位で管理します MySQL Developer Zone+1。
 
+```sql
 CREATE VIEW v_ocean_daily AS
 SELECT user_id, date, O_T, C_T, E_T, A_T, N_T
 FROM ocean_timeseries;
 GRANT SELECT ON v_ocean_daily TO analyst_reader;
+```
 
 4) トランザクションと再実行（堅牢化）
 * 既定の隔離レベルはREPEATABLE READ。必要ならセッションでREAD COMMITTEDに切替（ロック競合回避） MySQL Developer Zone+1。

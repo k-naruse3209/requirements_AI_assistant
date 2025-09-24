@@ -47,6 +47,7 @@ D. ドリフト/トレンド検知の時系列特徴量とは？
 3) I/O スキーマ例（1ユーザ×因子ごと、Tスコア系）
 入力（B→D）
 
+```json
 {
   "user_id": 123,
   "series_T": [52, 53, 51, 54, 55, 56, ...],
@@ -54,18 +55,20 @@ D. ドリフト/トレンド検知の時系列特徴量とは？
   "lambda": 0.2,
   "win_trend_days": 7,
   "win_var_days": 14
-}
+}```
 出力（D→ダッシュボード/図3）
 
+```json
 {
   "ewma_T": 54.1,
   "slope_T_7d": +0.42,
   "var_T_14d": 6.8,
   "flags": ["trend_up"],             // or ["stable","volatility_high"]
   "optional": { "cusum_flag": false, "ph_flag": false }
-}
+}```
 4) 擬似コード（n8nのFunctionノード想定／因子ごとに実行）
 
+```js
 // EWMA
 function ewma(arr, lambda){
   let z = arr[0];
@@ -106,6 +109,7 @@ const out = {
 // ランルール例：3σ超でフラグ
 // μ, σ は基準期間から推定してキャッシュしておく
 return out;
+```
 参考：EWMAの定義とλのガイダンス（0.15〜0.3が一般的）itl.nist.gov+1、OLSの傾き定義ウィキペディア、分散の安定計算法（Welford等）ウィキペディア、CUSUM/PH/BOCPDの位置づけitl.nist.gov+2GeeksforGeeks+2。
 
 受け入れ基準（例）

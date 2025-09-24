@@ -24,6 +24,7 @@ n8nのHTTP Request/MySQLノードでAPI連携・DB保存を実装（429・タイ
 * 入力（例）: ipip_answers（120項目の {item_id, value}、Likert 1–5）
 * 出力（例）:
 
+```json
 {
   "user_id": 123,
   "instrument": "IPIP-NEO-120",
@@ -32,7 +33,7 @@ n8nのHTTP Request/MySQLノードでAPI連携・DB保存を実装（429・タイ
   "ocean_p01": {"O":0.63,"C":0.44,"E":0.52,"A":0.58,"N":0.41},
   "facet_scores": { "O1": 56, "...": 47 },
   "norm_version": "Johnson2014"
-}
+}```
 * 根拠：IPIPスコアキー/規準（Johnson 2014）に従い、z→T=50+10zに変換。ipip.ori.org+2ipip.ori.org+2
 * 保存先：baseline_profiles（仕様書・DDLに準拠）。
 ② Measure入力（Symanto） → 正規化出力
@@ -59,6 +60,7 @@ Step A-5｜エラー・再試行
 * HTTP 429/5xxは指数バックオフ（n8n HTTP Request推奨設定）。n8n Docs+1
 3) 擬似コード（要点のみ）
 
+```js
 // Onboarding: IPIP -> T & p01
 function normalizeIpip(answers, norms){ // norms: {mu, sigma} per facet/domain
   const scored = scoreIpip(answers);       // reverse-key & sum/avg per facet
@@ -74,6 +76,7 @@ function normalizeSymanto(ocean){ // ocean in 0..1
   const oceanT   = mapValues(oceanP01, p => p * 100); // start with linear T
   return { oceanT, oceanP01 };
 }
+```
 IPIP採点と規準（μ, σ）はIPIP公式リソースを参照。ipip.ori.org+1
 
 品質保証（ミニ受け入れテスト）

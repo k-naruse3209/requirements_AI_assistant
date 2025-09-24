@@ -47,6 +47,7 @@ A～H（各モジュール） →［I. エラー制御・再試行・レート�
 具体レシピ（擬似コード・JavaScript風）
 再試行（Retry-After尊重＋上限付き指数バックオフ＋ジッター）
 
+```js
 async function callWithRetry(fetcher, {base=0.5, cap=20, max=3, jitter=0.5}) {
   for (let a=0; ; a++) {
     try { return await fetcher(); }
@@ -63,15 +64,18 @@ async function callWithRetry(fetcher, {base=0.5, cap=20, max=3, jitter=0.5}) {
     }
   }
 }
+```
 根拠：429/5xx/408/タイムアウトは再試行候補、指数バックオフ＋ジッター、Retry-After尊重は各公式に明記。Google Cloud+2Amazon Web Services, Inc.+2
 Token Bucket（Redis想定の概念）
 
+```text
 refill tokens at rate r (per second), up to capacity B
 on request:
   now = time()
   bucket.tokens = min(B, bucket.tokens + r*(now - bucket.last))
   if bucket.tokens >= 1: bucket.tokens -= 1; allow
   else: reject or delay
+```
 根拠：Cloudflareの実装解説（Durable Objects）やネットワーク理論で一般化。Cloudflare Docs+1
 
 OpenAI / Azure OpenAI 連携の注意

@@ -47,6 +47,7 @@ OpenAI Responses API で介入カード生成 → 配信・ログ
     * DのEWMAが大きく下落かつ分散↑のときはサポート寄りCBTを優先
 疑似コード（簡略）
 
+```js
 function plan(inputs){
   const f = featuresFrom(inputs); // Sentiment, Aspect, OCEAN_hat, EWMA, slope, var, CS/PT...
   const sCBT  = dot([NegSent, HighN, Volatility, Rumination], a);
@@ -64,6 +65,7 @@ function plan(inputs){
   }
   return choice;
 }
+```
 3) 学習版（オンライン最適化）
 コンテキスト付きバンディットで、ユーザー文脈（OCEAN_hat、Sentiment、CS/PT、傾き等）を使いながら、**探索（試す）と活用（効く方を使う）**を両立して方策を自動最適化できます。代表的なのは LinUCB や Thompson sampling。大規模パーソナライズで実績があります。Stanford University+4arXiv+4arXiv+4
 * 報酬の定義：翌日の実行（クリック/実施チェック）、継続日数、自己評価など
@@ -74,6 +76,7 @@ LLMへの受け渡し（Responses API）
 選んだtechnique/tone/length/CTAと根拠タグを、OpenAI Responses APIの/responsesに渡してカード文面を生成します（Assistantsの後継API。エージェント構築向けの統合機能）。OpenAI Platform+2ザ・ヴァージ+2
 プロンプト仕様（例）
 
+```json
 {
   "technique": "WOOP",
   "tone": "encouraging",
@@ -83,11 +86,12 @@ LLMへの受け渡し（Responses API）
   "trend": {"ewma_delta":"-1.2","slope_7d":"-0.3","var_14d":"high"},
   "cta": "今夜22時に10分だけ準備するIf–Thenを作る",
   "explain_tags": ["why:neg_mood_support","match:CS_emotional","safety:gentle"]
-}
+}```
 
 I/Oスキーマ（Eモジュール）
 入力
 
+```json
 {
   "user_id": 123,
   "ocean_hat": {"O":0.62,"C":0.48,"E":0.55,"A":0.60,"N":0.35},
@@ -100,9 +104,10 @@ I/Oスキーマ（Eモジュール）
     "cs":"emotional", "pt":"value_oriented",
     "ewma": {"N":41.5}, "slope_7d":{"C":+0.2}, "var_14d":{"N":"high"}
   }
-}
+}```
 出力
 
+```json
 {
   "plan": {
     "technique": "WOOP",
@@ -115,7 +120,7 @@ I/Oスキーマ（Eモジュール）
       "evidence_tags": ["neg_sent","goal_topic","slope_up_C_low"]
     }
   }
-}
+}```
 
 受け入れ基準（例）
 1. 同一入力に対して決定論的に同一プランを返す（学習OFF時）。
