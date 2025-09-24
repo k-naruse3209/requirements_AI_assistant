@@ -4,7 +4,7 @@ A. スコア整形・正規化って何をする？（やさしく要約）
 役割 ユーザーの回答やテキスト解析の**“生データ”を、人にも機械にも一貫して使えるスコアに整える共通基盤**です。
 * 人向け表示：Tスコア（平均50・標準偏差10の0–100表示）に変換してグラフや説明に使う。ipip.ori.org
 * 機械向け学習：0–1の正規化スコア（p01）を作り、後段の推定・判定に使う。
-* メタ情報：scale_type（T or p01）やnorm_version（規準データの版）を付け、解釈ミスや二重正規化を防ぐ。
+* メタ情報：norm_version（規準データの版）を付け、解釈ミスや二重正規化を防ぐ（T/p01は常に列として両方保存）。
 どこに置かれている？ 全体アーキテクチャの中央（n8nワークフローのFunction/HTTPノード近辺）で、**図1（初回のIPIP採点）と図2（Symantoのテキスト推定）**の両方で動きます。
 
 どう他システムと連携している？（データの流れ）
@@ -30,8 +30,7 @@ n8nのHTTP Request/MySQLノードでAPI連携・DB保存を実装（429・タイ
   "ocean_T": {"O":63,"C":44,"E":52,"A":58,"N":41},
   "ocean_p01": {"O":0.63,"C":0.44,"E":0.52,"A":0.58,"N":0.41},
   "facet_scores": { "O1": 56, "...": 47 },
-  "norm_version": "Johnson2014",
-  "scale_type": ["T","p01"]
+  "norm_version": "Johnson2014"
 }
 * 根拠：IPIPスコアキー/規準（Johnson 2014）に従い、z→T=50+10zに変換。ipip.ori.org+2ipip.ori.org+2
 * 保存先：baseline_profiles（仕様書・DDLに準拠）。
@@ -49,7 +48,7 @@ Step A-2｜採点（IPIP）
 2. ファセット集計：4項目×30ファセットの合計/平均。
 3. z→T変換：z = (raw - μ_norm)/σ_norm、T = 50 + 10*z。規準はJohnson系の公開データに準拠。ipip.ori.org+1
 4. 0–1化：p01 = (T / 100)（単純スケーリング。後段の回帰/融合で扱いやすい）。
-5. メタ付与：norm_version="Johnson2014" / scale_type=["T","p01"]。
+5. メタ付与：norm_version="Johnson2014"。
 Step A-3｜正規化（Symanto）
 * 0–1の受領値をそのままp01として採用。T化が必要なら線形キャリブレーション（例：T ≈ 100*p01を初期近似にし、パイロットで回帰補正）。API外形はRapidAPI/Symanto公開情報に一致。rapidapi.com+2rapidapi.com+2
 Step A-4｜DB保存
@@ -65,14 +64,14 @@ function normalizeIpip(answers, norms){ // norms: {mu, sigma} per facet/domain
   const oceanRaw = rollupToDomains(scored); // O,C,E,A,N raw
   const oceanT   = mapValues(oceanRaw, (x,k)=> 50 + 10*((x - norms[k].mu)/norms[k].sigma)); // T
   const oceanP01 = mapValues(oceanT, t => Math.min(1, Math.max(0, t/100)));
-  return { oceanT, oceanP01, norm_version: "Johnson2014", scale_type:["T","p01"] };
+  return { oceanT, oceanP01, norm_version: "Johnson2014" };
 }
 
 // Measure: Symanto -> p01 (& optional T)
 function normalizeSymanto(ocean){ // ocean in 0..1
   const oceanP01 = clamp01(ocean);
   const oceanT   = mapValues(oceanP01, p => p * 100); // start with linear T
-  return { oceanT, oceanP01, scale_type:["T","p01"] };
+  return { oceanT, oceanP01 };
 }
 IPIP採点と規準（μ, σ）はIPIP公式リソースを参照。ipip.ori.org+1
 
@@ -81,7 +80,7 @@ IPIP採点と規準（μ, σ）はIPIP公式リソースを参照。ipip.ori.org
 * **p01 ∈ [0,1]**の境界保証（丸め誤差±1e−6まで）。
 * DECIMAL→文字列の扱いを統一（保存前後で型チェック）。n8n Docs
 * 再現性：同一入力→同一出力（小数点以下の許容誤差内）。
-* メタ：scale_typeとnorm_versionが常に埋まる。
+* メタ：norm_versionが常に埋まる。
 
 参照と裏付け
 * アーキテクチャ＆フロー（社内資料）：全体図・図1・図2・図3・仕様書2.0/2.1。 
@@ -90,7 +89,7 @@ IPIP採点と規準（μ, σ）はIPIP公式リソースを参照。ipip.ori.org
 * n8n（HTTP Request/実装例、MySQLのDECIMAL文字列仕様）。n8n Docs+2n8n Docs+2
 
 整合性チェック（5回の観点）
-1. 単位の一貫性：IPIP→T/p01、Symanto→p01/T（線形初期化）。両方にscale_typeとnorm_versionを付与する設計で、二重正規化や誤解釈を防止。OK。
+1. 単位の一貫性：IPIP→T/p01、Symanto→p01/T（線形初期化）。両方を列で保持し、norm_versionメタで整合。二重正規化や誤解釈を防止。OK。
 2. フロー整合：図1（Baseline）→図2（Measure）→図3（Plan）で、Aは図1・図2の共通部品として働く。OK。
 3. 保存戦略：baseline_profiles/text_personality_estimatesに入力ログ＋正規化値、ocean_timeseriesは“参照のみ”。OK。
 4. 外部仕様整合：IPIP採点手順、Symanto APIの外形、n8nノードの挙動（HTTP/DECIMAL）。OK。n8n Docs+3ipip.ori.org+3rapidapi.com+3
