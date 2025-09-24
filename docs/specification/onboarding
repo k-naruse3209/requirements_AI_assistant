@@ -1,6 +1,5 @@
 
 ```mermaid
-
 flowchart TD
   %% ========== CLIENT ==========
   subgraph CLIENT["クライアント<br/>Mobile Web"]
