@@ -62,10 +62,13 @@ KPIカタログ（このプロジェクト版・最小セット）
 * 実験：割付ログと事前共変量でCUPEDを適用し効果推定（ノートブック or Pythonバッチ） ExP Platform
 3) 指標の数式（抜粋）
 * 
-￼
-wiki
-wiki
- NIST ITL
+￼実行率 $\hat{p} = \frac{\text{実行}}{\text{配信}}$、95%CIはWilson区間（実装は公式式）
+
+効果量（連続）: Cohen's d $d = \frac{\bar{x}_1 - \bar{x}_2}{s_{\text{pooled}}}$ をレポートに併記（p値だけに頼らない）
+
+トレンド : EWMA $z_t = \lambda y_t + (1-\lambda)z_{t-1}$、$\lambda=0.15 \sim 0.3$目安
+
+ 
 4) ダッシュボード（最小ビュー）
 * KPIカード：実行率（Wilson CI付き）、平均Streak、D7/D28リテンション
 * トレンド：EWMAと傾き、アラート（3σ超など）
