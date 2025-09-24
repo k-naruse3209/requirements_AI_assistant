@@ -1,3 +1,6 @@
+
+```mermaid
+
 flowchart TD
   %% ========== CLIENT ==========
   subgraph CLIENT["クライアント<br/>Mobile Web"]
@@ -25,3 +28,4 @@ flowchart TD
   VALID -- "INSERT 実行" --> SAVE_BASE
   SAVE_BASE -- "コミット" --> BASE
   BASE -- "baseline id 生成" --> OUT_BASE
+```
