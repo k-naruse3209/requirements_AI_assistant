@@ -4,16 +4,16 @@ DBレベルで値域/単位/CHECK/UNIQUE/権限/トリガを強制。`ocean_time
 
 ```mermaid
 flowchart LR
-  A1[A: 正規化] -->|Baseline| BP[(baseline_profiles)]
-  B1[B: Posterior] --> OT[(ocean_timeseries)]
-  E1[E: Plan] --> IP[(intervention_plans)]
+  A1["A: 正規化"] -->|Baseline| BP[(baseline_profiles)]
+  B1["B: Posterior"] --> OT[(ocean_timeseries)]
+  E1["E: Plan"] --> IP[(intervention_plans)]
   UI[User Actions] --> BE[(behavior_events)]
-  subgraph Constraints[H: 不変条件]
-    C1[CHECK: p01∈[0,1], T∈[0,100]]
-    C2[ENUM: scale_type in {T,p01}]
-    C3[Trigger: ocean_timeseries UPDATE/DELETE禁止]
-    C4[UNIQUE: idempotency_key]
-    C5[Roles/Grants: writer/read-only]
+  subgraph Constraints["H: 不変条件"]
+    C1["CHECK: p01∈[0,1], T∈[0,100]"]
+    C2["ENUM: scale_type in {T,p01}"]
+    C3["Trigger: ocean_timeseries UPDATE/DELETE禁止"]
+    C4["UNIQUE: idempotency_key"]
+    C5["Roles/Grants: writer/read-only"]
   end
   C1 -.-> BP
   C2 -.-> BP
