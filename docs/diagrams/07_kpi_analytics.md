@@ -4,12 +4,12 @@
 
 ```mermaid
 flowchart TD
-  BE[(behavior_events)] --> G1[G KPIジョブ: 日次]
+  BE[(behavior_events)] --> G1["G KPIジョブ: 日次"]
   IP[(intervention_plans)] --> G1
   G1 --> KD[(kpi_daily)]
-  KD --> G2[週次: Cohort/Retention/EWMA]
+  KD --> G2["週次: Cohort/Retention/EWMA"]
   G2 --> KC[(kpi_cohorts)]
-  KD --> EXP[実験評価(A/B + CUPED)]
-  EXP --> REP[レポート/ダッシュボード]
+  KD --> EXP["実験評価(A/B + CUPED)"]
+  EXP --> REP["レポート/ダッシュボード"]
 ```
 

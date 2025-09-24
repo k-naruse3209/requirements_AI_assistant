@@ -4,13 +4,13 @@ AIコーチの全体像です。クライアント（Mobile Web）— n8nオー�
 
 ```mermaid
 flowchart TD
-  subgraph Client[Client (Mobile Web)]
+  subgraph Client["Client (Mobile Web)"]
     UI1[IPIP-NEO-120 UI]
     UI2[Daily Chat UI]
     UI3[Intervention Card View]
   end
 
-  subgraph Orchestrator[n8n Orchestration]
+  subgraph Orchestrator["n8n Orchestration"]
     N1[Webhook]
     N2[HTTP Request]
     N3[Function JS]
@@ -18,7 +18,7 @@ flowchart TD
     N5[Wait/Retry]
   end
 
-  subgraph Core[Core Modules (A–I)]
+  subgraph Core["Core Modules (A–I)"]
     A[A 正規化/スケール管理]
     B[B ベイズ統合]
     C[C 確信度/品質ルール]
@@ -30,7 +30,7 @@ flowchart TD
     I[I 再試行/レート制限]
   end
 
-  subgraph Data[MySQL Data Layer]
+  subgraph Data["MySQL Data Layer"]
     T1[(baseline_profiles)]
     T2[(ocean_timeseries)]
     T3[(intervention_plans)]
@@ -38,8 +38,8 @@ flowchart TD
     T5[(audit_log)]
   end
 
-  subgraph External[External APIs]
-    S1[Symanto APIs\n(Big5/CS/PT/Sentiment/Aspect)]
+  subgraph External["External APIs"]
+    S1["Symanto APIs<br/>(Big5/CS/PT/Sentiment/Aspect)"]
     OAI[OpenAI Responses]
     MOD[Moderation]
   end
