@@ -1,0 +1,58 @@
+1) コア：必ず社内で実装・保守するロジック/プログラム
+A. スコア整形・正規化（Onboarding/Measure 共通）
+* IPIP-NEO-120の採点→z→T（50±10）変換、0–1域へのマッピング、scale_type/norm_versionの付与。入力検証・欠損処理も含む。 
+* Symanto出力（OCEAN推定）の0–1/T統一・線形キャリブレーション。
+B. ベイズ統合（Prior×Likelihood→Posterior）
+* Baseline（Prior）と日次テキスト推定（Likelihood）を精度重み付き平均で統合する推定器。各因子ごとに μ_post, σ²_post を計算し、0–1とTを二系統保存。 
+C. 確信度推定と品質ルール
+* 文長・翻訳経路・モデル一致度などからconfidenceを算出し、更新の強さやしきい値判定に使用。
+D. ドリフト/トレンド検知の時系列特徴量
+* EWMA、直近ウィンドウの傾き（slope）、ローリング分散の算出（OCEAN時系列＝参照専用）。ダッシュボードで使用。 （定義と使い分けの一般知識：Corporate Finance Institute+2isixsigma.com+2）
+E. 介入プランナー（JITAIの中核）
+* 入力：OCEAN_hat＋confidence、CS/PT、Sentiment、Aspect、直近KPI。
+* 出力：technique ∈ {CBT, WOOP, If–Then} とトーン/強度、根拠タグ。
+* ロジック：
+    * ルールベースの方策スコア（例：NegSent↑やN高→CBTスコア加点）。
+    * オプションでコンテキスト付きバンディット（LinUCBやThompson）を実装しオンライン最適化。 （バンディットの実装指針：vowpalwabbit.org+1）
+F. LLM出力の後処理
+* Responses API呼出後の安全フィルタ／テンプレ適用／根拠添付整形、フォールバック文面生成。（API概要：OpenAI+2Microsoft Learn+2）
+G. KPI集計と評価
+* 実行率・継続日数・Cohen’s d・週次T推移、ABテスト基盤（群割付・ログ集計）などの集計ジョブ。
+H. データモデルと不変条件の実装
+* ocean_timeseries を参照のみに保つためのDB権限/ビュー/トリガ設計、監査ログ（API I/O・方策選択・プロンプト）保存。 
+I. エラー制御・再試行・レート制限
+* n8n上の指数バックオフ、Timeout/429対応、部分失敗時の補償挿入（idempotency）。（n8nのHTTP呼出は公式手順で構成：n8n Docs+1）
+
+2) 実装は“組み立て（n8n）”で十分な箇所（コード最小）
+J. n8nワークフロー本体
+* Onboarding / Measure / Plan の3フロー。Webhook・HTTP Request・Function（JS）・MySQL・Cronの配線とリトライ設定。 （ノード操作：n8n Docs+1）
+K. クライアント（Mobile Web）
+* IPIP-NEO-120フォーム、日次チェックインUI、通知タップ遷移、説明UI（根拠の可視化）等。
+
+3) 外部サービスを“そのまま使う”箇所（自作不要）
+L. モデル推定API群（Symanto）
+* Big Five / Communication Style / Personality Traits / Sentiment / Aspect の呼び出し。自前モデリングは不要。 （API一覧：Symanto - Psychology AI+3rapidapi.com+3rapidapi.com+3）
+M. 自然文生成（OpenAI Responses API）
+* 介入カード生成・リライト・トーン最適化はAPI利用。（APIの位置付け：OpenAI+2Reuters+2）
+N. オーケストレーション基盤（n8n）/ RDB（MySQL）
+* n8nノードでのHTTP呼出・DB書込、MySQLそのものはマネージド利用で可。（n8nの実装要領：n8n Docs）
+
+開発の“優先実装”リスト（MVP → 拡張）
+1. ベイズ統合器（B）＋正規化（A）＋確信度（C）
+2. 時系列特徴（D）＋KPI集計（G）
+3. プランナー最初版（E/ルールベース）→効果が見えたらバンディット化
+4. LLM後処理（F）（安全・説明・脱落時フォールバック）
+5. DBの不変条件（H）＋エラー/再試行（I）
+
+受け入れ基準（例）
+* 統合結果一貫性：同一入力に対し、ベイズ統合器が決定論的に μ_post/σ²_post を返す（小数点以下の許容誤差±1e−6）。
+* 参照専用ストア：ocean_timeseries へはワークフロー以外からINSERT/UPDATE不可（権限/トリガで担保）。
+* ドリフト検知：EWMA・7日傾き・分散が仕様通りに計算・保存され、ダッシュで可視化。 Corporate Finance Institute
+* プランナー：方策スコアがログに残り、選定根拠（入力特徴→スコア→選択）が追跡可能。 
+* 外部APIの安定運用：n8nのHTTP Requestで429/5xxに指数バックオフ、タイムアウト設定。 n8n Docs
+
+実装ブロックの対応表（誰が作る？）
+* 弊社が作る：A〜I（アルゴリズム＆アプリロジック）、J（一部のFunctionノードJS）、K（UI）
+* 外部を使う：L（Symanto APIs）、M（OpenAI Responses API）、n8n/DB運用基盤（N）
+さらに進める場合は、上記A〜Iを「n8n Functionノード or 独立マイクロサービス」のどちらで持つかを設計判断します。HTTP境界を跨いでも、n8nのHTTP Requestで容易に呼べます（設計自由度とSLOで選択）。n8n Docs
+必要なら、各ブロックのI/O仕様（JSONスキーマ）と擬似コード、n8nワークフロー雛形もこのまま即時にお渡しできます。
