@@ -2,21 +2,19 @@
 
 このディレクトリには、AIコーチシステムの最新仕様書とアーキテクチャ図が含まれています。
 
-## ディレクトリ構造
+## 参照場所（図・仕様）
 
-### architecture/
-システム全体のアーキテクチャ図
-- `all_architecture_diagram_v2025-09-16.pdf` - 全体アーキテクチャ概要図
+### docs/specification/
+図・仕様PDFはすべて本ディレクトリ配下にあります。
+- `all_architecture_diagram_v2025-09-16.pdf` — 全体アーキテクチャ概要図
+- `onboarding_baseline_flow_v2025-09-16.pdf` — 図1: オンボーディングとベースライン確立
+- `daily_measurement_pipeline_v2025-09-16.pdf` — 図2: 日次測定パイプライン
+- `intervention_engagement_flow_v2025-09-16.pdf` — 図3: 介入とエンゲージメント
+- `specification_v3.0.pdf` — 詳細な要件定義書と機能設計書
 
-### flows/
-各フローの詳細図
-- `onboarding_baseline_flow_v2025-09-16.pdf` - 図1: オンボーディングとベースライン確立
-- `daily_measurement_pipeline_v2025-09-16.pdf` - 図2: 日次測定パイプライン
-- `intervention_engagement_flow_v2025-09-16.pdf` - 図3: 介入とエンゲージメント
-
-### requirements/
-要件定義書
-- `specification_v3.0.pdf` - 詳細な要件定義書と機能設計書
+### docs/diagrams/
+Mermaidで作成した開発者向けの分割図面は以下を参照してください。
+- `docs/diagrams/README.md` — 図面インデックス
 
 ## システム概要
 
