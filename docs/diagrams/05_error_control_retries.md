@@ -19,6 +19,5 @@ sequenceDiagram
     API-->>I: 最終応答
     I-->>Caller: 成功 or 失敗
   end
-  Note over I: Token Bucketで送信間隔を制御\nサーキットOpen中は即失敗→Half-Openでプローブ
+  Note over I: Token Bucketで送信間隔を制御<br/>サーキットOpen中は即失敗→Half-Openでプローブ
 ```
-

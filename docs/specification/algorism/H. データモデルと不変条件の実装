@@ -2,7 +2,7 @@ H. データモデルと不変条件の実装
 これは何をするシステム？
 要点だけ： アプリ全体のデータを「壊れない形」で保つための**スキーマ（表・列・制約）**と、破られてはいけないルール（不変条件／Invariant）をDBレベルで担保する仕組みです。
 * スキーマ：どんなテーブルがあり、どう繋がるか（PK/FK/型）。
-* 不変条件：例）ocean_timeseriesは追記専用、scale_typeは{"T","p01"}のみ、p01∈[0,1]、T∈[0,100]、idempotency_keyは重複禁止、など。
+* 不変条件：例）ocean_timeseriesは追記専用、p01∈[0,1]、T∈[0,100]、idempotency_keyは重複禁止、など。
 * これらをDBの機能で強制（CHECK制約・UNIQUE・FK・権限・トリガ・ロール）し、アプリ側のバグや並行処理でも破れないようにします。MySQL 8ではCHECK制約が実際に強制されます（8.0.16+） MySQL Developer Zone+1。
 
 他システムとの連携（どこから何を受け、何を守る？）
@@ -23,8 +23,8 @@ n8n（オーケストレーション）→  H: 書込は専用ロールのみ/�
 1) テーブル設計（例・主要部）
 便宜上、Tスコアは0–100、p01は0–1で保存します（Aでクランプ済み前提）。
 * users：user_id(PK) ほか
-* baseline_profiles：初回IPIP結果（user_id FK、administered_at、ocean_T、ocean_p01、norm_version、scale_type…）
-    * 不変条件：scale_type IN ('T','p01')、p01∈[0,1]、T∈[0,100]（CHECK制約） MySQL Developer Zone
+* baseline_profiles：初回IPIP結果（user_id FK、administered_at、ocean_T、ocean_p01、norm_version…）
+    * 不変条件：p01∈[0,1]、T∈[0,100]（CHECK制約） MySQL Developer Zone
 * text_personality_estimates：日々のテキスト由来のOCEAN推定（観測分散も格納）
 * ocean_timeseries：BのPosteriorの追記専用時系列（user_id, date, O..N_T/p01, posterior_var_T）
     * 不変条件：UPDATE/DELETE禁止（権限でUpdate/ Deleteを付与しない＋トリガで防壁）
@@ -52,7 +52,6 @@ CREATE TABLE baseline_profiles (
   O_T TINYINT UNSIGNED, C_T TINYINT UNSIGNED, E_T TINYINT UNSIGNED, A_T TINYINT UNSIGNED, N_T TINYINT UNSIGNED,
   O_p01 DECIMAL(5,4),  C_p01 DECIMAL(5,4),  E_p01 DECIMAL(5,4),  A_p01 DECIMAL(5,4),  N_p01 DECIMAL(5,4),
   norm_version VARCHAR(32) NOT NULL,
-  scale_type ENUM('T','p01') NOT NULL,
   PRIMARY KEY (user_id, administered_at),
   CONSTRAINT ck_p01_range CHECK (O_p01 BETWEEN 0 AND 1 AND C_p01 BETWEEN 0 AND 1
     AND E_p01 BETWEEN 0 AND 1 AND A_p01 BETWEEN 0 AND 1 AND N_p01 BETWEEN 0 AND 1),
@@ -79,6 +78,19 @@ CREATE TRIGGER ocean_timeseries_no_delete BEFORE DELETE ON ocean_timeseries
 FOR EACH ROW BEGIN
   SIGNAL SQLSTATE '45000' SET MESSAGE_TEXT='ocean_timeseries is append-only';
 END//
+
+-- 任意：時系列特徴テーブル（Dモジュール）
+CREATE TABLE ocean_features (
+  user_id BIGINT NOT NULL,
+  date DATE NOT NULL,
+  trait CHAR(1) NOT NULL CHECK (trait IN ('O','C','E','A','N')),
+  ewma_T DECIMAL(6,2) NULL,
+  slope_T_7d DECIMAL(6,2) NULL,
+  var_T_14d DECIMAL(6,2) NULL,
+  change_flag TINYINT(1) NULL,
+  PRIMARY KEY (user_id, date, trait),
+  FOREIGN KEY (user_id, date) REFERENCES ocean_timeseries(user_id, date)
+);
 DELIMITER ;  -- SIGNALは手続きからエラーを返す仕組みです :contentReference[oaicite:11]{index=11}
 
 -- Idempotency: 重複リクエスト防止

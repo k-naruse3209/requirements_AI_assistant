@@ -12,6 +12,6 @@ flowchart TD
   A --> C["C 確信度/品質: σx² & flags"]
   C --> B[B ベイズ統合]
   B --> T2[(ocean_timeseries)]
-  B --> D["D EWMA/傾き/分散\n(任意: 変化点検知)"]
+  B --> D["D EWMA/傾き/分散<br/>(任意: 変化点検知)"]
   D --> Dash["Dashboard/Planner参照"]
 ```

@@ -6,8 +6,8 @@
 
 ## 2. End-to-End Journeys
 ### 2.1 Onboarding → Baseline
-1. Scoring & normalization (A): Score IPIP‑NEO‑120, convert to T‑scores (50±10) and 0–1, attach `norm_version` and `scale_type`; validate inputs and handle missingness.
-2. Persistence (H): Append to `baseline_profiles`; enforce `scale_type ∈ {T,p01}`, T∈[0,100], p01∈[0,1] with CHECK/roles/triggers.
+1. Scoring & normalization (A): Score IPIP‑NEO‑120, convert to T‑scores (50±10) and 0–1, attach `norm_version`; validate inputs and handle missingness.
+2. Persistence (H): Append to `baseline_profiles`; enforce T∈[0,100], p01∈[0,1] with CHECK/roles/triggers.
 3. Prior (B): Baseline serves as the Bayesian prior for later updates.
 
 ### 2.2 Daily Measurement Pipeline
@@ -36,4 +36,3 @@
 ## 4. References
 - Specs: `docs/specification/algorism/*` (modules A–I)
 - Diagrams: `docs/diagrams/` (Mermaid split diagrams)
-
