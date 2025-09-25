@@ -86,7 +86,8 @@ LLMへの受け渡し（Responses API）
   "trend": {"ewma_delta":"-1.2","slope_7d":"-0.3","var_14d":"high"},
   "cta": "今夜22時に10分だけ準備するIf–Thenを作る",
   "explain_tags": ["why:neg_mood_support","match:CS_emotional","safety:gentle"]
-}```
+}
+```
 
 I/Oスキーマ（Eモジュール）
 入力
@@ -104,7 +105,8 @@ I/Oスキーマ（Eモジュール）
     "cs":"emotional", "pt":"value_oriented",
     "ewma": {"N":41.5}, "slope_7d":{"C":+0.2}, "var_14d":{"N":"high"}
   }
-}```
+}
+```
 出力
 
 ```json
@@ -120,7 +122,8 @@ I/Oスキーマ（Eモジュール）
       "evidence_tags": ["neg_sent","goal_topic","slope_up_C_low"]
     }
   }
-}```
+}
+```
 
 受け入れ基準（例）
 1. 同一入力に対して決定論的に同一プランを返す（学習OFF時）。

@@ -55,7 +55,8 @@ D. ドリフト/トレンド検知の時系列特徴量とは？
   "lambda": 0.2,
   "win_trend_days": 7,
   "win_var_days": 14
-}```
+}
+```
 出力（D→ダッシュボード/図3）
 
 ```json
@@ -65,7 +66,8 @@ D. ドリフト/トレンド検知の時系列特徴量とは？
   "var_T_14d": 6.8,
   "flags": ["trend_up"],             // or ["stable","volatility_high"]
   "optional": { "cusum_flag": false, "ph_flag": false }
-}```
+}
+```
 4) 擬似コード（n8nのFunctionノード想定／因子ごとに実行）
 
 ```js

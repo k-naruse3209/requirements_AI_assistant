@@ -33,7 +33,8 @@ n8nのHTTP Request/MySQLノードでAPI連携・DB保存を実装（429・タイ
   "ocean_p01": {"O":0.63,"C":0.44,"E":0.52,"A":0.58,"N":0.41},
   "facet_scores": { "O1": 56, "...": 47 },
   "norm_version": "Johnson2014"
-}```
+}
+```
 * 根拠：IPIPスコアキー/規準（Johnson 2014）に従い、z→T=50+10zに変換。ipip.ori.org+2ipip.ori.org+2
 * 保存先：baseline_profiles（仕様書・DDLに準拠）。
 ② Measure入力（Symanto） → 正規化出力
