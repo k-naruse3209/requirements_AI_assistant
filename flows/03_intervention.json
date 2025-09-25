@@ -1,0 +1,25 @@
+{
+  "name": "03_Intervention_Planner_to_Delivery",
+  "nodes": [
+    {"parameters":{"httpMethod":"POST","path":"intervention/trigger","responseMode":"onReceived","options":{}},"id":"Webhook","name":"Webhook: Trigger","type":"n8n-nodes-base.webhook","typeVersion":1,"position":[220,300]},
+    {"parameters":{"functionCode":"// Load latest posterior snapshot & features (stub)\n+const user_id = items[0].json.user_id || 1;
+// Posterior & features summary
+return [{json:{ user_id, ocean_hat:{O:0.62,C:0.48,E:0.55,A:0.60,N:0.35}, var_T:{O:70,C:70,E:70,A:70,N:70}, features:{sentiment:'neutral', aspects:['仕事'], cs:'emotional', pt:'value_oriented'} }}];"},"id":"Fn_Load","name":"Function: Load Posterior/Features","type":"n8n-nodes-base.function","typeVersion":1,"position":[500,300]},
+    {"parameters":{"functionCode":"// E: simple rule-based planner\nconst f = $json.features || {};\nlet technique='WOOP', tone='encouraging', length='short', cta='21:00に3分だけ準備';\nreturn [{json:{...$json, plan:{technique,tone,length,cta}}}];"},"id":"Fn_E","name":"Function: Planner (E)","type":"n8n-nodes-base.function","typeVersion":1,"position":[780,300]},
+    {"parameters":{"url":"http://gateway:8000/openai-proxy","options":{},"sendBody":true,"jsonParameters":true,"bodyParametersJson":"={\n  \"prompt\": {{$json.plan.cta}},\n  \"schema\": {\n    \"type\": \"object\",\n    \"required\": [\"headline\"],\n    \"properties\": {\n      \"headline\": {\"type\": \"string\"},\n      \"steps\": {\"type\": \"array\"}\n    }\n  }\n}"},"id":"HTTP_OpenAI","name":"HTTP: /openai-proxy","type":"n8n-nodes-base.httpRequest","typeVersion":3,"position":[1060,300]},
+    {"parameters":{"operation":"executeQuery","query":"INSERT INTO intervention_plans (user_id, technique, tone, length, cta, llm_prompt, evidence_tags) VALUES ({{ $json.user_id }}, '{{ $json.plan.technique }}', '{{ $json.plan.tone }}', '{{ $json.plan.length }}', '{{ $json.plan.cta }}', '{{ JSON.stringify($json.body && $json.body.card || $json.card) }}', '[]');"},"id":"MySQL_SavePlan","name":"MySQL: Save Plan","type":"n8n-nodes-base.mySql","typeVersion":2,"position":[1320,300]},
+    {"parameters":{"operation":"executeQuery","query":"INSERT INTO behavior_events (user_id, event_type, idempotency_key, details) VALUES ({{ $json.user_id }}, 'sent', UUID(), JSON_OBJECT('plan','sent'));"},"id":"MySQL_Behavior","name":"MySQL: behavior_events","type":"n8n-nodes-base.mySql","typeVersion":2,"position":[1580,300]},
+    {"parameters":{"responseBody":"{\"status\":\"ok\"}","responseCode":200,"options":{"rawBody":true}},"id":"Respond","name":"Respond","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[1840,300]}
+  ],
+  "connections": {
+    "Webhook: Trigger": {"main": [[{"node": "Function: Load Posterior/Features", "type": "main", "index": 0}]]},
+    "Function: Load Posterior/Features": {"main": [[{"node": "Function: Planner (E)", "type": "main", "index": 0}]]},
+    "Function: Planner (E)": {"main": [[{"node": "HTTP: /openai-proxy", "type": "main", "index": 0}]]},
+    "HTTP: /openai-proxy": {"main": [[{"node": "MySQL: Save Plan", "type": "main", "index": 0}]]},
+    "MySQL: Save Plan": {"main": [[{"node": "MySQL: behavior_events", "type": "main", "index": 0}]]},
+    "MySQL: behavior_events": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"}
+}
+

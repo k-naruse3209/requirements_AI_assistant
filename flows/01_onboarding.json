@@ -1,0 +1,59 @@
+{
+  "name": "01_Onboarding_IPIP_to_Baseline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding/ipip",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "Webhook_Receive",
+      "name": "Webhook: Receive IPIP",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [260, 300]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Normalize IPIP to T/p01 (A)\nconst ans = items[0].json.answers || [];\n// dummy: assume domain sums in 0..1\nfunction mapToT(v){return Math.max(0, Math.min(100, Math.round(50+10*(v-0.5)/0.1)));}\nconst t = {O: mapToT(0.63), C: mapToT(0.44), E: mapToT(0.52), A: mapToT(0.58), N: mapToT(0.41)};\nconst p01 = {O: 0.63, C: 0.44, E: 0.52, A: 0.58, N: 0.41};\nconst norm_version = 'Johnson2014';\nconst user_id = items[0].json.user_id || 1;\nconst administered_at = new Date().toISOString().slice(0,19).replace('T',' ');\nreturn [{json: {user_id, administered_at, O_T:t.O, C_T:t.C, E_T:t.E, A_T:t.A, N_T:t.N, O_p01:p01.O, C_p01:p01.C, E_p01:p01.E, A_p01:p01.A, N_p01:p01.N, norm_version}}];"
+      },
+      "id": "Function_Normalize_A",
+      "name": "Function: Normalize (A)",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO baseline_profiles (user_id, administered_at, O_T, C_T, E_T, A_T, N_T, O_p01, C_p01, E_p01, A_p01, N_p01, norm_version) VALUES ({{ $json.user_id }}, '{{ $json.administered_at }}', {{ $json.O_T }}, {{ $json.C_T }}, {{ $json.E_T }}, {{ $json.A_T }}, {{ $json.N_T }}, {{ $json.O_p01 }}, {{ $json.C_p01 }}, {{ $json.E_p01 }}, {{ $json.A_p01 }}, {{ $json.N_p01 }}, '{{ $json.norm_version }}');"
+      },
+      "id": "MySQL_Insert_Baseline",
+      "name": "MySQL: Insert baseline_profiles (H)",
+      "type": "n8n-nodes-base.mySql",
+      "typeVersion": 2,
+      "position": [800, 300]
+    },
+    {
+      "parameters": {
+        "responseBody": "{\"status\":\"ok\"}",
+        "responseCode": 200,
+        "options": {"rawBody": true}
+      },
+      "id": "Respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1040, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Receive IPIP": {"main": [[{"node": "Function: Normalize (A)", "type": "main", "index": 0}]]},
+    "Function: Normalize (A)": {"main": [[{"node": "MySQL: Insert baseline_profiles (H)", "type": "main", "index": 0}]]},
+    "MySQL: Insert baseline_profiles (H)": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"}
+}
+
