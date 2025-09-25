@@ -54,6 +54,7 @@ $$
 I/Oスキーマ
 入力（Aから＋補助特徴）
 
+```json
 {
   "user_id": 123,
   "obs_p01": {"O":0.71,"C":0.33,"E":0.49,"A":0.62,"N":0.28},
@@ -64,16 +65,19 @@ I/Oスキーマ
     "mt_qe": 0.78,           // 翻訳がある場合のみ
     "ood_score": 0.10        // 0=分布内, 1=大きく外れ
   }
-}
+}```
 出力（Bへ手渡し & 監査ログへ保存）
 
+```json
 {
   "obs_var_T": {"O":90,"C":110,"E":100,"A":95,"N":105},
   "confidence": 0.73,             // 0..1 の便宜的な全体指標
   "quality_flags": ["OK"]         // or ["SHORT_TEXT","LOW_QE","LANG_MISMATCH"]
 }
+```
 擬似コード（要点）
 
+```js
 function estimateVarT(meta) {
   const { tokens=0, mt_qe=null, ood_score=0, lang_detected, lang_expected } = meta;
   const langMismatch = (lang_detected !== lang_expected);
@@ -104,6 +108,7 @@ const obs_var_T = computePerTraitVar($json.meta);
 const flags = qualityFlags($json.meta);
 const conf = 1 / (1 + (avg(Object.values(obs_var_T)) / 100)); // ざっくり指標
 return { obs_var_T, confidence: conf, quality_flags: flags };
+```
 
 校正（キャリブレーション）と健全性チェック
 * 温度スケーリングで確信度を外部真値に合わせて調整し、ECE/MCEを定期監視。**「確信度70%のサンプルが本当に約70%当たっているか？」**をリライアビリティ・ダイアグラムで可視化。arXiv+1

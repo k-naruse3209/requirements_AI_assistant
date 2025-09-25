@@ -40,14 +40,17 @@ B. ベイズ統合って何をするシステム？
 2) I/O スキーマ（JSON; 因子は O,C,E,A,N）
 入力（A からの正規化結果＋参照 Prior）
 
+```json
 {
   "user_id": 123,
   "prior":   { "mu_T": {"O":63,"C":44,"E":52,"A":58,"N":41}, "var_T": {"O":64,"C":81,"E":81,"A":64,"N":81} },
   "obs":     { "x_T":  {"O":60,"C":35,"E":55,"A":62,"N":45}, "var_T": {"O":225,"C":225,"E":225,"A":225,"N":225} },
   "meta":    { "norm_version":"Johnson2014","lang_route":"ja→en","tokens":120 }
 }
+```
 出力（時系列へ保存し、図3へ handoff）
 
+```json
 {
   "posterior": {
     "mu_T":  {"O":59,"C":40,"E":53,"A":60,"N":43},
@@ -55,6 +58,7 @@ B. ベイズ統合って何をするシステム？
   },
   "posterior_p01": { "O":0.59,"C":0.40,"E":0.53,"A":0.60,"N":0.43 }
 }
+```
 上の数字は例。Posterior 分散は Prior/観測より小さくなる（“情報が増えた分だけ精度が上がる”）。Bookdown
 
 3) n8n 実装（Measure フロー中の Function ノード）
@@ -65,6 +69,7 @@ B. ベイズ統合って何をするシステム？
 5. MySQL ノードへ ocean_timeseries に INSERT（Posterior と var、EWMA/傾き/分散は別ジョブ）
 擬似コード（JS）
 
+```js
 function updateOne(mu0, var0, x, varx) {
   const prec0 = 1/var0, precx = 1/varx;             // 精度
   const mup   = (prec0*mu0 + precx*x) / (prec0+precx);
@@ -81,6 +86,7 @@ for (const k of ["O","C","E","A","N"]) {
   post.var_T[k] = v;
   post.mu_p01[k]= Math.max(0, Math.min(1, mu/100));
 }
+```
 逐次更新＝カルマンフィルタの一歩です（状態遷移を入れない静止版）。将来、週単位ドリフトなど遷移モデルを入れるとフル・カルマンになります。arXiv+1
 4) 検証（ミニ例）
 Prior: μ₀=45, σ₀=10 → σ₀²=100 観測: x=60, σₓ=15 → σₓ²=225 精度：0.01 と 0.00444… → 正規化重みはおよそ 0.692 : 0.308 μₚ ≈ 0.692×45 + 0.308×60 = 49.6 σₚ² = 1/(0.01+0.00444) ≈ 69.2（SD≈8.3） → 両者の“ちょうど中間”ではなく、ばらつきの小さい Prior 側に寄るのがポイント。Bookdown
