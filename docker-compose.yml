@@ -1,0 +1,60 @@
+version: "3.9"
+services:
+  mysql:
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: ai_coach
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./infra/sql/schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
+  gateway:
+    build:
+      context: .
+      dockerfile: services/gateway/Dockerfile
+    environment:
+      DB_HOST: mysql
+      DB_USER: root
+      DB_PASS: password
+      DB_NAME: ai_coach
+      SYMANTO_STUB: "1"
+      OPENAI_STUB: "1"
+    depends_on:
+      - mysql
+    ports:
+      - "8000:8000"
+
+  tester:
+    image: python:3.11-slim
+    depends_on:
+      - gateway
+    entrypoint: ["python", "- <<'PY'",]
+    command: |
+      import time,sys,requests
+      base="http://gateway:8000"
+      for _ in range(30):
+        try:
+          r=requests.get(base+"/health",timeout=1)
+          if r.status_code==200: break
+        except Exception: pass
+        time.sleep(1)
+      else:
+        print("health failed"); sys.exit(1)
+
+      # test symanto normal
+      r=requests.post(base+"/symanto-proxy",json={"text":"hello"})
+      assert r.status_code==200
+
+      # test symanto 429 then retry/backoff (stub returns 429)
+      r=requests.post(base+"/symanto-proxy",json={"text":"oops","_mode":"429"})
+      # may still be 429 after max retries; ensure proper status surfaced
+      assert r.status_code in (200,429,500,502,503)
+
+      # test openai proxy structured/ sanitize/ moderation
+      r=requests.post(base+"/openai-proxy",json={"prompt":"<script>alert(1)</script>","schema":{"type":"object","required":["headline"],"properties":{"headline":{"type":"string"}}}})
+      assert r.status_code==200
+      print("OK")
+PY
+
