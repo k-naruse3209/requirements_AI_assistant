@@ -1,0 +1,25 @@
+{
+  "name": "02_Daily_Pipeline_Symanto_to_Posterior",
+  "nodes": [
+    {"parameters":{"httpMethod":"POST","path":"daily/chat","responseMode":"onReceived","options":{}},"id":"Webhook_Chat","name":"Webhook: Chat","type":"n8n-nodes-base.webhook","typeVersion":1,"position":[240,320]},
+    {"parameters":{"functionCode":"// Lang detect / translate placeholder\nconst text = items[0].json.text || '';\nreturn [{json:{ user_id: items[0].json.user_id || 1, text, lang:'ja'}}];"},"id":"Fn_Lang","name":"Function: Lang/Translate","type":"n8n-nodes-base.function","typeVersion":1,"position":[480,320]},
+    {"parameters":{"url":"http://gateway:8000/symanto-proxy","options":{},"sendBody":true,"jsonParameters":true,"bodyParametersJson":"={\n  \"text\": {{$json.text}}\n}"},"id":"HTTP_Symanto","name":"HTTP: /symanto-proxy","type":"n8n-nodes-base.httpRequest","typeVersion":3,"position":[720,320]},
+    {"parameters":{"functionCode":"// A/C normalization and variance (stub)\nconst user_id = items[0].json.user_id || 1;\nconst data = (items[0].json.body && items[0].json.body.data) || items[0].json.data || {O:0.61,C:0.44,E:0.52,A:0.58,N:0.41};\nfunction t(p){return Math.round(Math.max(0,Math.min(100,p*100)));}\nconst post = {O_T:t(data.O),C_T:t(data.C),E_T:t(data.E),A_T:t(data.A),N_T:t(data.N),O_p01:data.O,C_p01:data.C,E_p01:data.E,A_p01:data.A,N_p01:data.N};\n// simple variance heuristic in T scale\nconst var_T = 80;\nreturn [{json:{user_id, obs:{...post}, obs_var_T: var_T}}];"},"id":"Fn_A_C","name":"Function: Normalize(A)/Confidence(C)","type":"n8n-nodes-base.function","typeVersion":1,"position":[980,320]},
+    {"parameters":{"functionCode":"// B: Bayesian fusion (static prior example)\nconst prior = {O_T:60,C_T:50,E_T:50,A_T:55,N_T:45, var_T:100};\nfunction fuse(mu0,var0,x,varx){const p0=1/var0, px=1/varx; const mu=(p0*mu0+px*x)/(p0+px); const v=1/(p0+px); return [Math.round(mu), v];}\nconst o = $json.obs; const varx = $json.obs_var_T;\nconst res = {}; const traits=['O','C','E','A','N'];\nfor (const tr of traits){ const [mu,v]= fuse(prior[tr+"_T"], prior.var_T, o[tr+"_T"], varx); res[tr+"_T"]=mu; res[tr+"_p01"]=Math.max(0,Math.min(1,mu/100));}\nres.posterior_var_T = 70.0;\nreturn [{json:{user_id:$json.user_id, date:(new Date().toISOString().slice(0,10)), ...res}}];"},"id":"Fn_B","name":"Function: Bayesian(B)","type":"n8n-nodes-base.function","typeVersion":1,"position":[1240,320]},
+    {"parameters":{"functionCode":"// D: simple features\nconst series = [$json.O_T,$json.O_T,$json.O_T];\nconst ewma = series.reduce((p,c)=>0.2*c+0.8*p, series[0]);\nreturn [{json:{...$json, ewma_T: Math.round(ewma)}}];"},"id":"Fn_D","name":"Function: Features(D)","type":"n8n-nodes-base.function","typeVersion":1,"position":[1500,320]},
+    {"parameters":{"operation":"executeQuery","query":"INSERT INTO ocean_timeseries (user_id,date,O_T,C_T,E_T,A_T,N_T,O_p01,C_p01,E_p01,A_p01,N_p01,posterior_var_T) VALUES ({{ $json.user_id }}, '{{ $json.date }}', {{ $json.O_T }}, {{ $json.C_T }}, {{ $json.E_T }}, {{ $json.A_T }}, {{ $json.N_T }}, {{ $json.O_p01 }}, {{ $json.C_p01 }}, {{ $json.E_p01 }}, {{ $json.A_p01 }}, {{ $json.N_p01 }}, {{ $json.posterior_var_T }});"},"id":"MySQL_Insert_TS","name":"MySQL: Insert ocean_timeseries","type":"n8n-nodes-base.mySql","typeVersion":2,"position":[1760,320]},
+    {"parameters":{"responseBody":"{\"status\":\"ok\"}","responseCode":200,"options":{"rawBody":true}},"id":"Respond","name":"Respond","type":"n8n-nodes-base.respondToWebhook","typeVersion":1,"position":[2000,320]}
+  ],
+  "connections": {
+    "Webhook: Chat": {"main": [[{"node": "Function: Lang/Translate", "type": "main", "index": 0}]]},
+    "Function: Lang/Translate": {"main": [[{"node": "HTTP: /symanto-proxy", "type": "main", "index": 0}]]},
+    "HTTP: /symanto-proxy": {"main": [[{"node": "Function: Normalize(A)/Confidence(C)", "type": "main", "index": 0}]]},
+    "Function: Normalize(A)/Confidence(C)": {"main": [[{"node": "Function: Bayesian(B)", "type": "main", "index": 0}]]},
+    "Function: Bayesian(B)": {"main": [[{"node": "Function: Features(D)", "type": "main", "index": 0}]]},
+    "Function: Features(D)": {"main": [[{"node": "MySQL: Insert ocean_timeseries", "type": "main", "index": 0}]]},
+    "MySQL: Insert ocean_timeseries": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "active": false,
+  "settings": {"executionOrder": "v1"}
+}
+
