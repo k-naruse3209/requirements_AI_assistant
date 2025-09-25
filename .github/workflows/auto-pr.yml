@@ -1,0 +1,27 @@
+name: Auto PR on Branch Push
+
+on:
+  push:
+    branches:
+      - infra/schema-ddl
+      - docs/algorism-md
+
+jobs:
+  open_pr:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Open Pull Request into main
+        uses: repo-sync/pull-request@v2
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          destination_branch: main
+          pr_title: "Auto PR: ${{ github.ref_name }} → main"
+          pr_body: |
+            This pull request was automatically created for branch `${{ github.ref_name }}`.
+
+            Contains:
+            - Infra (Terraform, schema.sql), gateway, compose, flows, CI/CD (deploy.yml)
+            - Docs (algorism) code fencing and ASCII flows (if docs/algorism-md)
+          pr_draft: false
+
