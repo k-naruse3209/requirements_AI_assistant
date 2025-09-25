@@ -162,3 +162,44 @@ sequenceDiagram
 ## 変更履歴
 - 2025-09-16: 仕様書v3.0と詳細フロー図を追加
 - 2025-09-XX: 二系統（T/p01）列の恒常保存に統一、`scale_type` 記述を整理、`ocean_features` DDL（任意）追補、Mermaid改行を `<br/>` に統一
+
+## DB スキーマ適用（Apply / Rollback）
+
+- スキーマファイル: `infra/sql/schema.sql`
+
+### Apply（適用）
+- 事前: 対象のデータベース（例: `ai_coach`）を作成済みで、接続ユーザーがDDL権限を持っていること。
+- 実行例:
+  - macOS/Linux:
+    - `mysql -u <USER> -p -D <DB_NAME> < infra/sql/schema.sql`
+  - Windows (PowerShell):
+    - `Get-Content infra/sql/schema.sql | mysql -u <USER> -p -D <DB_NAME>`
+
+適用内容（概要）
+- tables: `users`, `baseline_profiles`, `text_personality_estimates`, `ocean_timeseries`, `ocean_features`(任意), `intervention_plans`, `behavior_events`, `audit_log`
+- 二系統（T / p01）列と `norm_version` メタを定義
+- `behavior_events.idempotency_key` を UNIQUE 制約で定義
+- `ocean_timeseries` に追記専用トリガ（UPDATE/DELETE禁止）を適用
+- 基本的な FK / INDEX / UNIQUE を定義
+
+### Rollback（ロールバック）
+注意: データ破壊を伴います。取り消し前に必ずバックアップを取得してください。
+
+- もっとも依存の浅い順に DROP（外部キー依存の逆順）:
+  ```sql
+  DROP TABLE IF EXISTS audit_log;
+  DROP TABLE IF EXISTS behavior_events;
+  DROP TABLE IF EXISTS intervention_plans;
+  DROP TABLE IF EXISTS ocean_features;
+  -- 先にトリガを削除（MySQLはDROP TABLE時に自動削除されますが明示可）
+  DROP TABLE IF EXISTS ocean_timeseries;
+  DROP TABLE IF EXISTS text_personality_estimates;
+  DROP TABLE IF EXISTS baseline_profiles;
+  DROP TABLE IF EXISTS users;
+  ```
+
+- テーブル単位のロールバック（例: append-onlyトリガ除去）:
+  ```sql
+  DROP TRIGGER IF EXISTS ocean_timeseries_no_update;
+  DROP TRIGGER IF EXISTS ocean_timeseries_no_delete;
+  ```
