@@ -9,19 +9,39 @@ F. LLM出力の後処理（Post-processing）とは？
 
 どこに置かれ、何と連携する？
 
-E: 介入プランナー（technique/tone/length/CTA決定）
-        │
-        │  プロンプト（+根拠タグ） → Responses API（LLM生成）
-        ▼
-F: LLM出力の後処理　← 本モジュール
-   ├─ 1) 構造化・検証（Structured Outputs / JSON Schema）
-   ├─ 2) 安全化（Moderation API, XSSサニタイズ）
-   ├─ 3) 可読化（トーン/表記/リンク化）
-   ├─ 4) フォールバック（再生成・テンプレ）
-   └─ 5) 監査ログ（入出力・判定理由・スキーマ版）
-        │
+```text
+E: 介入プランナー（technique/tone/length/CTA 決定）
+  |
+  |__ プロンプト（+根拠タグ） → Responses API（LLM生成）
+  v
+F: LLM出力の後処理（本モジュール）
+  ├─ 1) 構造化・検証（Structured Outputs / JSON Schema）
+  ├─ 2) 安全化（Moderation API, XSSサニタイズ）
+  ├─ 3) 可読化（トーン/表記/リンク化）
+  ├─ 4) フォールバック（再生成・テンプレ）
+  └─ 5) 監査ログ（入出力・判定理由・スキーマ版）
+        |
         ├─ クライアント配信（Mobile Web通知/カード表示）
         └─ KPIロギング（実行→継続→報酬）
+```
+
+擬似コード（フォールバック例・可読）
+
+```js
+// スキーマ検証 → 再生成 → テンプレ の段階的フォールバック例（疑似）
+function finalizeCard(llmRaw, schema, moderation) {
+  const validated = validateWithSchema(llmRaw, schema);
+  if (validated.ok) return sanitizeAndReturn(validated.json, moderation);
+
+  const retry = regenerateWithLowerTemp();
+  const validated2 = validateWithSchema(retry, schema);
+  if (validated2.ok) return sanitizeAndReturn(validated2.json, moderation);
+
+  // 安全テンプレにフォールバック
+  const safe = buildSafeTemplate();
+  return sanitizeAndReturn(safe, moderation);
+}
+```
 * 上流：Eから「選んだ介入・トーン・長さ・CTA」＋根拠タグ。
 * 本モジュール：形・安全・可読性・耐故障・監査の5点チェックで仕上げる。
 * 下流：配信用API（カードJSON）と監査/評価テーブルに保存。
